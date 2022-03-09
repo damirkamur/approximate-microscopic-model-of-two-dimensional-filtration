@@ -1,10 +1,11 @@
+from typing import Callable
+
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import sparse
 from scipy.sparse import linalg
 import math
 from time import time
-import csv
 
 
 def m_x_y_(x: float, y: float) -> float:
@@ -67,6 +68,23 @@ def gu_from_to_value(side: str, type_: str, value_from: float, value_to: float) 
     for i in range(len(gu[side])):
         gu[side][i][0] = type_
         gu[side][i][1] = values[i]
+
+
+def gu_from_function(side: str, type_: str, func: Callable, x_lim: list[float, float] = None) -> None:
+    global gu
+    if not x_lim:
+        if side == 'left' or side == 'right':
+            x_lim = [1, N - 1]
+        elif side == 'top' or side == 'bottom':
+            x_lim = [1, M - 1]
+    values = np.linspace(x_lim[0], x_lim[1], len(gu[side]))
+    for i in range(len(gu[side])):
+        gu[side][i][0] = type_
+        gu[side][i][1] = func(values[i])
+
+
+def function(x):
+    return math.sin(x)
 
 
 def add_poiseuille_equation_horizontal(i: int, j: int) -> None:
@@ -176,6 +194,8 @@ print(f'Система {N}x{M} ячеек')
 print(f'Инициализация: {time() - start} секунд')
 start = time()
 # Задание граничных условий
+
+
 gu_const_val('top', 'q', 0)
 gu_const_val('bottom', 'q', 0)
 gu_const_val('left', 'p', 10)
