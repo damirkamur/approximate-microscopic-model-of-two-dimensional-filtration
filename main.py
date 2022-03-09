@@ -1,3 +1,5 @@
+from typing import Callable
+
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import sparse
@@ -49,10 +51,9 @@ def q1_i(i: int, j: int) -> int:
 
 def gu_const_val(side: str, type_: str, value: float) -> None:
     """
-    Функция задания константного значения давления или дебита (граничное условие)
-    Значения задаются слева-направо либо снизу-вверх
-    :param side: сторона (right, top, left, bottom)
-    :param type_: тип ГУ: "p" или "q"
+    Задание граничного условия в виде константного значения функции
+    :param side: сторона области (right, top, left, bottom)
+    :param type_: тип ГУ: давление "p" или расход "q"
     :param value: значение
     """
     global gu
@@ -62,6 +63,14 @@ def gu_const_val(side: str, type_: str, value: float) -> None:
 
 
 def gu_from_to_value(side: str, type_: str, value_from: float, value_to: float) -> None:
+    """
+    Задание граничного условия в виде линейной функции от первого значения до второго
+    Значения задаются слева-направо либо снизу-вверх
+    :param side: сторона области (right, top, left, bottom)
+    :param type_: тип ГУ: давление "p" или расход "q"
+    :param value_from: первое значение
+    :param value_to: второе значение
+    """
     global gu
     values = np.linspace(value_from, value_to, len(gu[side]))
     for i in range(len(gu[side])):
@@ -69,7 +78,32 @@ def gu_from_to_value(side: str, type_: str, value_from: float, value_to: float) 
         gu[side][i][1] = values[i]
 
 
+def gu_from_function(side: str, type_: str, func: Callable, xlim: list[float, float] = None) -> None:
+    """
+    Задание граничного условия в виде функции
+    Значения задаются слева-направо либо снизу-вверх
+    :param side: сторона области (right, top, left, bottom)
+    :param type_: тип ГУ: давление "p" или расход "q"
+    :param func: функция
+    :param xlim: пределы изменения значения функции, которые будут интерполированы на узлы
+    """
+    if not xlim:
+        if side == 'left' or side == 'right':
+            xlim = [1, M - 1]
+        elif side == 'top' or side == 'bottom':
+            xlim = [1, N - 1]
+    values = np.linspace(xlim[0], xlim[1], len(gu[side]))
+    for i in range(values.size):
+        gu[side][i][0] = type_
+        gu[side][i][1] = func(values[i])
+
+
 def add_poiseuille_equation_horizontal(i: int, j: int) -> None:
+    """
+    Добавление в матрицу уравнения Пуазейля для горизонтального канала
+    :param i: индекс i горизонтального канала
+    :param j: индекс j горизонтального канала
+    """
     global data, row_ind, col_ind, eq_ind
     h = 0.5 * (b[i - 1][j - 1] + b[i][j - 1])
     coef = h ** 3 / 12
@@ -80,6 +114,11 @@ def add_poiseuille_equation_horizontal(i: int, j: int) -> None:
 
 
 def add_poiseuille_equation_vertical(i: int, j: int) -> None:
+    """
+    Добавление в матрицу уравнения Пуазейля для вертикального канала
+    :param i: индекс i вертикального канала
+    :param j: индекс j вертикального канала
+    """
     global data, row_ind, col_ind, eq_ind
     h = 0.5 * (b[j][i] + b[j][i + 1])
     coef = h ** 3 / 12
@@ -90,6 +129,12 @@ def add_poiseuille_equation_vertical(i: int, j: int) -> None:
 
 
 def add_balance_equation(i: int, j: int) -> None:
+    """
+    Добавление в матрицу уравнения баланса для внутреннего узла
+    Суммарный расход через узел равен нулю
+    :param i: индекс i узла
+    :param j: индекс j узла
+    """
     global data, row_ind, col_ind, eq_ind
     data.extend([1.0, 1.0, -1.0, -1.0])
     row_ind.extend([eq_ind, eq_ind, eq_ind, eq_ind])
@@ -98,6 +143,12 @@ def add_balance_equation(i: int, j: int) -> None:
 
 
 def add_value_p(i: int, j: int, value) -> None:
+    """
+    Добавление в систему уравнений конкретного значения для давления в узле
+    :param i: индекс i узла
+    :param j: индекс j узла
+    :param value: значение давления
+    """
     global data, row_ind, col_ind, eq_ind, rhs
     data.append(1)
     row_ind.append(eq_ind)
@@ -107,6 +158,12 @@ def add_value_p(i: int, j: int, value) -> None:
 
 
 def add_value_q_horizontal(i: int, j: int, value) -> None:
+    """
+    Добавление в систему уравнений конкретного значения для расхода в горизонтальном канале
+    :param i: индекс i горизонтального канала
+    :param j: индекс j горизонтального канала
+    :param value: значение расхода
+    """
     global data, row_ind, col_ind, eq_ind, rhs
     data.append(1)
     row_ind.append(eq_ind)
@@ -116,6 +173,12 @@ def add_value_q_horizontal(i: int, j: int, value) -> None:
 
 
 def add_value_q_vertical(i: int, j: int, value) -> None:
+    """
+    Добавление в систему уравнений конкретного значения для расхода в вертикальном канале
+    :param i: индекс i вертикального канала
+    :param j: индекс j вертикального канала
+    :param value: значение расхода
+    """
     global data, row_ind, col_ind, eq_ind, rhs
     data.append(1)
     row_ind.append(eq_ind)
@@ -125,6 +188,10 @@ def add_value_q_vertical(i: int, j: int, value) -> None:
 
 
 def add_corner_p_equations() -> None:
+    """
+    Добавление в систему уравнений метода нахождения четырех угловых давлений
+    Даления находятся как среднее арифметическое двух соседних давлений
+    """
     global data, row_ind, col_ind, eq_ind
     data.extend([-2, 1, 1])
     row_ind.extend([eq_ind, eq_ind, eq_ind])
@@ -142,6 +209,11 @@ def add_corner_p_equations() -> None:
     row_ind.extend([eq_ind, eq_ind, eq_ind])
     col_ind.extend([p_i(M, 0), p_i(M, 1), p_i(M - 1, 0)])
     eq_ind += 1
+
+
+# Просто пример функции
+def function(x):
+    return x ** 2
 
 
 global_start = time()
