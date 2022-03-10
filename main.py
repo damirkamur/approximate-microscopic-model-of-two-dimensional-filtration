@@ -1,12 +1,11 @@
 from typing import Callable
-
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import sparse
 from scipy.sparse import linalg
+from scipy import interpolate
 import math
 from time import time
-import csv
 
 
 def m_x_y_(x: float, y: float) -> float:
@@ -47,6 +46,16 @@ def q1_i(i: int, j: int) -> int:
     :return: индекс в матрице неизвестных
     """
     return j + i * M + q_p + q_q0
+
+
+def cell_i(i: int, j: int) -> int:
+    """
+    индекс ячейки[i][j] в матрице неизвестных (N*M)
+    :param i: индекс i
+    :param j: индекс j
+    :return: индекс в матрице неизвестных
+    """
+    return j + i * N
 
 
 def gu_const_val(side: str, type_: str, value: float) -> None:
@@ -211,6 +220,17 @@ def add_corner_p_equations() -> None:
     eq_ind += 1
 
 
+def extrap_func(x: list[float], y: list[float]) -> Callable:
+    if len(x) == 1:
+        return lambda xx: y[0]
+    elif len(x) == 2:
+        return interpolate.interp1d(x, y, kind='linear', fill_value='extrapolate')
+    elif len(x) == 3:
+        return interpolate.interp1d(x, y, kind='quadratic', fill_value='extrapolate')
+    else:
+        return interpolate.interp1d(x, y, kind='cubic', fill_value='extrapolate')
+
+
 # Просто пример функции
 def function(x):
     return x ** 2
@@ -219,7 +239,7 @@ def function(x):
 global_start = time()
 start = time()
 # Количество ячеек по горизонтали и вертикали соответственно
-N, M = 10, 10
+N, M = 3, 4
 # Количество ячеек
 Q = N * M
 # Количество уравнений
@@ -245,6 +265,7 @@ gu = {'right': [['p', 0] for _ in range(M - 1)],
       'left': [['p', 0] for _ in range(M - 1)],
       'bottom': [['p', 0] for _ in range(N - 1)]}
 print(f'Система {N}x{M} ячеек')
+print('=' * 40)
 print(f'Инициализация: {time() - start} секунд')
 start = time()
 # Задание граничных условий
@@ -304,12 +325,82 @@ start = time()
 # Решение системы
 p_q0_q1 = linalg.spsolve(sA, rhs)
 print(f'Решение системы: {time() - start} секунд')
+print('=' * 40)
 
-# Постпроцессинг
-# Перерасчет p
+start = time()
+# Расчет функции тока на смещенной сетке / Составление матрицы
+row_ind = list()
+col_ind = list()
+data = list()
+rhs = np.zeros(2 * M * N - M - N + 1)
+eq_ind = 0
+# горизонтальные расходы
+for i in range(M):
+    for j in range(N - 1):
+        row_ind.extend([eq_ind, eq_ind])
+        col_ind.extend([cell_i(i, j + 1), cell_i(i, j)])
+        data.extend([1.0, -1.0])
+        rhs[eq_ind] = p_q0_q1[q1_i(j, i)]
+        eq_ind += 1
+# вертикальные расходы
+for j in range(N):
+    for i in range(M - 1):
+        row_ind.extend([eq_ind, eq_ind])
+        col_ind.extend([cell_i(i + 1, j), cell_i(i, j)])
+        data.extend([1.0, -1.0])
+        rhs[eq_ind] = p_q0_q1[q0_i(i, j)]
+        eq_ind += 1
+# граничное условие
+row_ind.append(eq_ind)
+col_ind.append(cell_i(0, 0))
+data.append(1.0)
+sA = sparse.csc_matrix((tuple(data), (tuple(row_ind), tuple(col_ind))), shape=(rhs.size, N * M))
+print(f'Формирование системы для функции тока: {time() - start} секунд')
+start = time()
+# Решение системы
+ppsi = sparse.linalg.lsqr(sA, rhs)[0]
+print(f'Решение системы: {time() - start} секунд')
+
+start = time()
+# Перерасчет psi на обычную сетку
+
+# внутренняя сетка
+psi = np.zeros((M + 1, N + 1))
+for i in range(1, M):
+    for j in range(1, N):
+        psi[i][j] = 0.25 * (
+                ppsi[cell_i(i - 1, j - 1)] + ppsi[cell_i(i, j - 1)] + ppsi[cell_i(i, j)] + ppsi[cell_i(i - 1, j)])
+# экстраполяция
+# вертикаль
+for j in range(1, N):
+    func = extrap_func(np.linspace(1, M - 1, M - 1), psi[:, j][1:-1])
+    psi[0][j] = func(0)
+    psi[M][j] = func(M)
+# горизонталь
+for i in range(1, M):
+    func = extrap_func(np.linspace(1, N - 1, N - 1), psi[i][1:-1])
+    psi[i][0] = func(0)
+    psi[i][N] = func(N)
+# углы
+func_right = extrap_func(np.linspace(1, M - 1, M - 1), psi[:, N][1:-1])
+func_left = extrap_func(np.linspace(1, M - 1, M - 1), psi[:, 0][1:-1])
+func_top = extrap_func(np.linspace(1, N- 1, N - 1), psi[M][1:-1])
+func_bottom = extrap_func(np.linspace(1, N - 1, N - 1), psi[0][1:-1])
+psi[0][0] = (func_bottom(0) + func_left(0))*0.5
+psi[0][N] = (func_bottom(N) + func_right(0))*0.5
+psi[M][N] = (func_top(N) + func_right(M))*0.5
+psi[M][0] = (func_top(0) + func_left(M))*0.5
+print(f'Перерасчет psi на обычную сетку: {time() - start} секунд')
+print('=' * 40)
+
+start = time()
+# Выделение величин
 p = np.zeros((M + 1, N + 1))
 for i in range(M + 1):
     for j in range(N + 1):
         p[i][j] = p_q0_q1[p_i(i, j)]
-print(p)
+print(f'Выделение функции давления и функции тока из неизвестных величин: {time() - start} секунд')
+print('=' * 40)
+
+
 print(f'Время работы программы: {time() - global_start} секунд')
