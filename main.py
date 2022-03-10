@@ -384,12 +384,17 @@ for i in range(1, M):
 # углы
 func_right = extrap_func(np.linspace(1, M - 1, M - 1), psi[:, N][1:-1])
 func_left = extrap_func(np.linspace(1, M - 1, M - 1), psi[:, 0][1:-1])
-func_top = extrap_func(np.linspace(1, N- 1, N - 1), psi[M][1:-1])
+func_top = extrap_func(np.linspace(1, N - 1, N - 1), psi[M][1:-1])
 func_bottom = extrap_func(np.linspace(1, N - 1, N - 1), psi[0][1:-1])
-psi[0][0] = (func_bottom(0) + func_left(0))*0.5
-psi[0][N] = (func_bottom(N) + func_right(0))*0.5
-psi[M][N] = (func_top(N) + func_right(M))*0.5
-psi[M][0] = (func_top(0) + func_left(M))*0.5
+psi[0][0] = (func_bottom(0) + func_left(0)) * 0.5
+psi[0][N] = (func_bottom(N) + func_right(0)) * 0.5
+psi[M][N] = (func_top(N) + func_right(M)) * 0.5
+psi[M][0] = (func_top(0) + func_left(M)) * 0.5
+
+norm_psi = psi[0][0]
+for i in range(M + 1):
+    for j in range(N + 1):
+        psi[i][j] -= norm_psi
 print(f'Перерасчет psi на обычную сетку: {time() - start} секунд')
 print('=' * 40)
 
@@ -402,5 +407,19 @@ for i in range(M + 1):
 print(f'Выделение функции давления и функции тока из неизвестных величин: {time() - start} секунд')
 print('=' * 40)
 
-
+# Вывод результатов
+start = time()
+with open(f'results/psi{N}x{M}.dat', 'w') as file:
+    for i in range(M + 1):
+        for j in range(N + 1):
+            file.write('%.6f' % (psi[i][j]) + '\t')
+        file.write('\n')
+print(f'Выгрузка psi: {time() - start} секунд')
+start = time()
+with open(f'results/p{N}x{M}.dat', 'w') as file:
+    for i in range(M + 1):
+        for j in range(N + 1):
+            file.write('%.6f' % (p[i][j]) + '\t')
+        file.write('\n')
+print(f'Выгрузка p: {time() - start} секунд')
 print(f'Время работы программы: {time() - global_start} секунд')
