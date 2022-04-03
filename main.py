@@ -18,6 +18,14 @@ def m_x_y_(x: float, y: float) -> float:
     return 0.2
 
 
+def m_from_file():
+    global m
+    m = np.zeros((M, N))
+    with open('m.txt', 'r') as file:
+        for i, line in enumerate(file):
+            m[i] = np.array(list(map(float, line.split())))
+
+
 def p_i(i: int, j: int) -> int:
     """
     индекс p[i][j] в матрице неизвестных
@@ -231,15 +239,21 @@ def extrap_func(x: list[float], y: list[float]) -> Callable:
         return interpolate.interp1d(x, y, kind='cubic', fill_value='extrapolate')
 
 
-# Просто пример функции
-def function(x):
-    return x ** 2
+def p_analit(x, y):
+    """
+    Функция для валидации солвера
+    """
+    kappa = N
+    k = b[0][0] ** 2 / 12
+    return kappa / k / math.sinh(math.pi) * math.cosh(math.pi * x / kappa) * math.cos(math.pi * y / kappa)
 
 
 global_start = time()
 start = time()
 # Количество ячеек по горизонтали и вертикали соответственно
-N, M = 3, 4
+N, M = 400,200
+# Выгрузка аналитического решения
+analit_export = False
 # Количество ячеек
 Q = N * M
 # Количество уравнений
@@ -254,7 +268,8 @@ q_q1 = (N - 1) * M
 x = np.array([[j + 0.5 for j in range(N)] for i in range(M)])
 y = np.array([[i + 0.5 for j in range(N)] for i in range(M)])
 # Пористость в ячейках, ширины пор
-m = np.array([[m_x_y_(x[i][j], y[i][j]) for j in range(N)] for i in range(M)])
+# m = np.array([[m_x_y_(x[i][j], y[i][j]) for j in range(N)] for i in range(M)])
+m_from_file()
 b = np.array([[1 - math.sqrt(1 - m[i][j]) for j in range(N)] for i in range(M)])
 # Значения, индексы по строке и столбцу для спарс матрицы
 data, row_ind, col_ind = list(), list(), list()
@@ -268,11 +283,18 @@ print(f'Система {N}x{M} ячеек')
 print('=' * 40)
 print(f'Инициализация: {time() - start} секунд')
 start = time()
+
 # Задание граничных условий
-gu_const_val('top', 'q', 0)
-gu_const_val('bottom', 'q', 0)
-gu_const_val('left', 'p', 10)
+# gu_const_val('top', 'p', 100)
+# gu_from_function('top', 'p', lambda x: p_analit(x, M))
+# gu_const_val('bottom', 'q', 0)
+# gu_const_val('left', 'q', 0)
+# gu_from_function('right', 'p', lambda y: p_analit(N, y))
+
+gu_const_val('left', 'p', 100)
 gu_const_val('right', 'p', 0)
+gu_const_val('bottom', 'q', 0)
+gu_const_val('top', 'q', 0)
 print(f'Задание граничных условий: {time() - start} секунд')
 
 start = time()
@@ -340,7 +362,7 @@ for i in range(M):
         row_ind.extend([eq_ind, eq_ind])
         col_ind.extend([cell_i(i, j + 1), cell_i(i, j)])
         data.extend([1.0, -1.0])
-        rhs[eq_ind] = p_q0_q1[q1_i(j, i)]
+        rhs[eq_ind] = -p_q0_q1[q1_i(j, i)]
         eq_ind += 1
 # вертикальные расходы
 for j in range(N):
@@ -356,6 +378,7 @@ col_ind.append(cell_i(0, 0))
 data.append(1.0)
 sA = sparse.csc_matrix((tuple(data), (tuple(row_ind), tuple(col_ind))), shape=(rhs.size, N * M))
 print(f'Формирование системы для функции тока: {time() - start} секунд')
+
 start = time()
 # Решение системы
 ppsi = sparse.linalg.lsqr(sA, rhs)[0]
@@ -412,14 +435,27 @@ start = time()
 with open(f'results/psi{N}x{M}.dat', 'w') as file:
     for i in range(M + 1):
         for j in range(N + 1):
-            file.write('%.6f' % (psi[i][j]) + '\t')
+            file.write('%15.6f' % (psi[i][j]))
         file.write('\n')
 print(f'Выгрузка psi: {time() - start} секунд')
 start = time()
 with open(f'results/p{N}x{M}.dat', 'w') as file:
     for i in range(M + 1):
         for j in range(N + 1):
-            file.write('%.6f' % (p[i][j]) + '\t')
+            file.write('%15.6f' % (p[i][j]) + '\t' * 2)
         file.write('\n')
 print(f'Выгрузка p: {time() - start} секунд')
+
+if analit_export:
+    start = time()
+    analit_p = np.zeros((M + 1, N + 1))
+    for i in range(M + 1):
+        for j in range(N + 1):
+            analit_p[i][j] = p_analit(j, i)
+    with open(f'results/analit_p{N}x{M}.dat', 'w') as file:
+        for i in range(M + 1):
+            for j in range(N + 1):
+                file.write('%15.6f' % (analit_p[i][j]) + '\t' * 2)
+            file.write('\n')
+    print(f'Выгрузка аналитического p: {time() - start} секунд')
 print(f'Время работы программы: {time() - global_start} секунд')
