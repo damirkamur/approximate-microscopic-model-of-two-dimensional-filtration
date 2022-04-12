@@ -15,7 +15,7 @@ with open(f'results/p{N}x{M}.dat', 'r') as file:
     for i, line in enumerate(file):
         p[i, :] = list(map(float, line.split()))
 
-with open(f'm.txt', 'r') as file:
+with open(f'results/m{N}x{M}.dat', 'r') as file:
     for i, line in enumerate(file):
         m[i, :] = list(map(float, line.split()))
 
@@ -29,21 +29,21 @@ except Exception as _ex:
 
 plt.figure(1)
 plt.axes().set_aspect('equal')
-plt.contourf(X, Y, psi, np.linspace(np.min(psi), np.max(psi), 30))
+plt.contourf(X, Y, psi, np.linspace(np.min(psi), np.max(psi), 100))
 plt.colorbar()
 plt.title('Функция тока')
 plt.show()
 
 plt.figure(2)
 plt.axes().set_aspect('equal')
-plt.contourf(X, Y, p, np.linspace(np.min(p), np.max(p), 30))
+plt.contourf(X, Y, p, np.linspace(np.min(p), np.max(p), 100))
 plt.colorbar()
 plt.title('Функция давления')
 plt.show()
 
 plt.figure(3)
 plt.axes().set_aspect('equal')
-plt.contourf(X1, Y1, m, np.linspace(np.min(m), np.max(m), 30))
+plt.contourf(X1, Y1, m, np.linspace(np.min(m), np.max(m), 100))
 plt.colorbar()
 plt.title('пористость')
 plt.show()

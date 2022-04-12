@@ -1,11 +1,12 @@
 from typing import Callable
+import math
 import numpy as np
-from matplotlib import pyplot as plt
 from scipy import sparse
 from scipy.sparse import linalg
 from scipy import interpolate
-import math
+from PIL import Image
 from time import time
+
 
 
 def m_x_y_(x: float, y: float) -> float:
@@ -18,12 +19,39 @@ def m_x_y_(x: float, y: float) -> float:
     return 0.2
 
 
-def m_from_file():
+def m_from_file(file_name: str) -> None:
+    """
+    считывание m из файла. Первая строка – нижняя грань среды
+    :param file_name: имя файла
+    """
     global m
     m = np.zeros((M, N))
-    with open('m.txt', 'r') as file:
+    with open(file_name, 'r') as file:
         for i, line in enumerate(file):
             m[i] = np.array(list(map(float, line.split())))
+
+
+def m_from_image(image_name: str, min_m: float = 0.0, max_m: float = 1.0) -> None:
+    """
+    Функция для генерации пористости по картинке.
+    Пористость интерполируется от min_m (для самого темного оттенка) до max_m(для самого светлого)
+    :param image_name: название файла картинки
+    :param min_m: минимальное значение пористости
+    :param max_m: масимальное значение пористости
+    """
+
+    def interpolate(color):
+        return min_m + (max_m - min_m) * (color - minimum_color) / (maximum_color - minimum_color)
+
+    global m, N, M
+    m = np.zeros((M, N))
+    image = Image.open(image_name).convert('L')
+    image = image.resize((N, M))
+    data = image.load()
+    colors = np.array([[data[x, y] for x in range(N)] for y in range(M - 1, -1, -1)])
+    maximum_color = np.max(colors)
+    minimum_color = np.min(colors)
+    m = np.array([[interpolate(colors[i][j]) for j in range(N)] for i in range(M)])
 
 
 def p_i(i: int, j: int) -> int:
@@ -251,7 +279,7 @@ def p_analit(x, y):
 global_start = time()
 start = time()
 # Количество ячеек по горизонтали и вертикали соответственно
-N, M = 400,200
+N, M = 400, 200
 # Выгрузка аналитического решения
 analit_export = False
 # Количество ячеек
@@ -269,7 +297,7 @@ x = np.array([[j + 0.5 for j in range(N)] for i in range(M)])
 y = np.array([[i + 0.5 for j in range(N)] for i in range(M)])
 # Пористость в ячейках, ширины пор
 # m = np.array([[m_x_y_(x[i][j], y[i][j]) for j in range(N)] for i in range(M)])
-m_from_file()
+m_from_image('10203040.png', 0.2, 0.4)
 b = np.array([[1 - math.sqrt(1 - m[i][j]) for j in range(N)] for i in range(M)])
 # Значения, индексы по строке и столбцу для спарс матрицы
 data, row_ind, col_ind = list(), list(), list()
@@ -291,10 +319,10 @@ start = time()
 # gu_const_val('left', 'q', 0)
 # gu_from_function('right', 'p', lambda y: p_analit(N, y))
 
-gu_const_val('left', 'p', 100)
+gu_const_val('left', 'q', 0)
 gu_const_val('right', 'p', 0)
 gu_const_val('bottom', 'q', 0)
-gu_const_val('top', 'q', 0)
+gu_const_val('top', 'p', 100)
 print(f'Задание граничных условий: {time() - start} секунд')
 
 start = time()
@@ -445,7 +473,12 @@ with open(f'results/p{N}x{M}.dat', 'w') as file:
             file.write('%15.6f' % (p[i][j]) + '\t' * 2)
         file.write('\n')
 print(f'Выгрузка p: {time() - start} секунд')
-
+with open(f'results/m{N}x{M}.dat', 'w') as file:
+    for i in range(M):
+        for j in range(N):
+            file.write('%15.6f' % (m[i][j]) + '\t' * 2)
+        file.write('\n')
+print(f'Выгрузка m: {time() - start} секунд')
 if analit_export:
     start = time()
     analit_p = np.zeros((M + 1, N + 1))
