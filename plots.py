@@ -29,14 +29,14 @@ except Exception as _ex:
 
 plt.figure(1)
 plt.axes().set_aspect('equal')
-plt.contourf(X, Y, psi, np.linspace(np.min(psi), np.max(psi), 100))
+plt.contour(X, Y, psi, np.linspace(np.min(psi), np.max(psi), 30))
 plt.colorbar()
 plt.title('Функция тока')
 plt.show()
 
 plt.figure(2)
 plt.axes().set_aspect('equal')
-plt.contourf(X, Y, p, np.linspace(np.min(p), np.max(p), 100))
+plt.contour(X, Y, p, np.linspace(np.min(p), np.max(p), 100))
 plt.colorbar()
 plt.title('Функция давления')
 plt.show()

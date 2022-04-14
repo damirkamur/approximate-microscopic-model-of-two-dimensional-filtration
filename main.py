@@ -8,7 +8,7 @@ from PIL import Image
 from time import time
 
 
-
+# region пористость
 def m_x_y_(x: float, y: float) -> float:
     """
     Функция пористости
@@ -47,13 +47,15 @@ def m_from_image(image_name: str, min_m: float = 0.0, max_m: float = 1.0) -> Non
     m = np.zeros((M, N))
     image = Image.open(image_name).convert('L')
     image = image.resize((N, M))
-    data = image.load()
-    colors = np.array([[data[x, y] for x in range(N)] for y in range(M - 1, -1, -1)])
+    pixels = image.load()
+    colors = np.array([[pixels[x, y] for x in range(N)] for y in range(M - 1, -1, -1)])
     maximum_color = np.max(colors)
     minimum_color = np.min(colors)
     m = np.array([[interpolate(colors[i][j]) for j in range(N)] for i in range(M)])
 
 
+# endregion
+# region индексы в матрице
 def p_i(i: int, j: int) -> int:
     """
     индекс p[i][j] в матрице неизвестных
@@ -94,6 +96,8 @@ def cell_i(i: int, j: int) -> int:
     return j + i * N
 
 
+# endregion
+# region задание ГУ
 def gu_const_val(side: str, type_: str, value: float) -> None:
     """
     Задание граничного условия в виде константного значения функции
@@ -143,6 +147,8 @@ def gu_from_function(side: str, type_: str, func: Callable, xlim: list[float, fl
         gu[side][i][1] = func(values[i])
 
 
+# endregion
+# region Добавление уравнений в матрицу
 def add_poiseuille_equation_horizontal(i: int, j: int) -> None:
     """
     Добавление в матрицу уравнения Пуазейля для горизонтального канала
@@ -256,6 +262,8 @@ def add_corner_p_equations() -> None:
     eq_ind += 1
 
 
+# endregion
+# region вспомогательные функции
 def extrap_func(x: list[float], y: list[float]) -> Callable:
     if len(x) == 1:
         return lambda xx: y[0]
@@ -275,6 +283,8 @@ def p_analit(x, y):
     k = b[0][0] ** 2 / 12
     return kappa / k / math.sinh(math.pi) * math.cosh(math.pi * x / kappa) * math.cos(math.pi * y / kappa)
 
+
+# endregion
 
 global_start = time()
 start = time()
@@ -297,7 +307,7 @@ x = np.array([[j + 0.5 for j in range(N)] for i in range(M)])
 y = np.array([[i + 0.5 for j in range(N)] for i in range(M)])
 # Пористость в ячейках, ширины пор
 # m = np.array([[m_x_y_(x[i][j], y[i][j]) for j in range(N)] for i in range(M)])
-m_from_image('10203040.png', 0.2, 0.4)
+m_from_image('circle1.png', 0.2, 0.4)
 b = np.array([[1 - math.sqrt(1 - m[i][j]) for j in range(N)] for i in range(M)])
 # Значения, индексы по строке и столбцу для спарс матрицы
 data, row_ind, col_ind = list(), list(), list()
@@ -319,10 +329,10 @@ start = time()
 # gu_const_val('left', 'q', 0)
 # gu_from_function('right', 'p', lambda y: p_analit(N, y))
 
-gu_const_val('left', 'q', 0)
+gu_const_val('left', 'p', 100)
 gu_const_val('right', 'p', 0)
 gu_const_val('bottom', 'q', 0)
-gu_const_val('top', 'p', 100)
+gu_const_val('top', 'q', 0)
 print(f'Задание граничных условий: {time() - start} секунд')
 
 start = time()
