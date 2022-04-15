@@ -50,12 +50,54 @@ def k1_i(i: int, j: int) -> int:
     return j + i * M
 
 
+def write_to_file(file_name: str, mode: int = 1) -> None:
+    """
+    Функция для записи результатов в файл
+    :param file_name: название файла
+    :param mode: режим выгрузки (1 – матричный, 2 – в столбцы)
+    """
+    if mode == 1:
+        start = time()
+        with open(f'k_from_image/{file_name}_k.dat', 'w') as file:
+            for i in range(M):
+                for j in range(N):
+                    file.write('%15.6f' % (k[i][j]) + '\t' * 2)
+                file.write('\n')
+        print(f'Выгрузка k: {time() - start} секунд')
+
+        start = time()
+        with open(f'k_from_image/{file_name}_dk_dx.dat', 'w') as file:
+            for i in range(M):
+                for j in range(N):
+                    file.write('%15.6f' % (dk_dx[i][j]) + '\t' * 2)
+                file.write('\n')
+        print(f'Выгрузка dk_dx: {time() - start} секунд')
+
+        start = time()
+        with open(f'k_from_image/{file_name}_dk_dy.dat', 'w') as file:
+            for i in range(M):
+                for j in range(N):
+                    file.write('%15.6f' % (dk_dy[i][j]) + '\t' * 2)
+                file.write('\n')
+        print(f'Выгрузка dk_dy: {time() - start} секунд')
+    elif mode == 2:
+        start = time()
+        with open(f'k_from_image/{file_name}_k_dk_dx_dk_dy.dat', 'w') as file:
+            file.write(f'{N} {M}\n')
+            for i in range(M):
+                for j in range(N):
+                    file.write('%15.6f' % (k[i][j]) + '\t' * 2 + '%15.6f' % (dk_dx[i][j]) + '\t' * 2 + '%15.6f' % (
+                        dk_dy[i][j]) + '\n')
+
+        print(f'Выгрузка k: {time() - start} секунд')
+
+
 N = 200
 M = 100
 print(f'Система {N}x{M} ячеек')
 print('=' * 40)
 start = time()
-m_from_image('field.png', 0.2, 0.5)
+m_from_image('10203040.png', 0.1, 0.4)
 b = np.array([[1 - math.sqrt(1 - m[i][j]) for j in range(N)] for i in range(M)])
 # Количество k0 (→)
 q_k0 = (M - 1) * N
@@ -96,26 +138,4 @@ for j in range(N):
 k = 0.5 * (k1 + k2)
 print(f'Аппроксимация: {time() - start} секунд')
 
-start = time()
-with open(f'k_from_image/k{N}x{M}.dat', 'w') as file:
-    for i in range(M):
-        for j in range(N):
-            file.write('%15.6f' % (k[i][j]) + '\t' * 2)
-        file.write('\n')
-print(f'Выгрузка k: {time() - start} секунд')
-
-start = time()
-with open(f'k_from_image/dk_dx{N}x{M}.dat', 'w') as file:
-    for i in range(M):
-        for j in range(N):
-            file.write('%15.6f' % (dk_dx[i][j]) + '\t' * 2)
-        file.write('\n')
-print(f'Выгрузка dk_dx: {time() - start} секунд')
-
-start = time()
-with open(f'k_from_image/dk_dy{N}x{M}.dat', 'w') as file:
-    for i in range(M):
-        for j in range(N):
-            file.write('%15.6f' % (dk_dy[i][j]) + '\t' * 2)
-        file.write('\n')
-print(f'Выгрузка dk_dy: {time() - start} секунд')
+write_to_file('field1', mode=2)

@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
-N, M = 400, 200
+N, M = 200, 100
 X, Y = np.meshgrid(np.linspace(0, N + 1, N + 1), np.linspace(0, M + 1, M + 1))
 X1, Y1 = np.meshgrid(np.linspace(0.5, N - 0.5, N), np.linspace(0.5, M - 0.5, M))
 psi = np.zeros((M + 1, N + 1))
