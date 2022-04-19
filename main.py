@@ -289,7 +289,7 @@ def p_analit(x, y):
 global_start = time()
 start = time()
 # Количество ячеек по горизонтали и вертикали соответственно
-N, M = 200, 100
+N, M = 1000, 500
 # Выгрузка аналитического решения
 analit_export = False
 # Количество ячеек
@@ -307,7 +307,7 @@ x = np.array([[j + 0.5 for j in range(N)] for i in range(M)])
 y = np.array([[i + 0.5 for j in range(N)] for i in range(M)])
 # Пористость в ячейках, ширины пор
 # m = np.array([[m_x_y_(x[i][j], y[i][j]) for j in range(N)] for i in range(M)])
-m_from_image('field2.png', 0.2, 0.4)
+m_from_image('field.png', 0.01, 0.2)
 b = np.array([[1 - math.sqrt(1 - m[i][j]) for j in range(N)] for i in range(M)])
 # Значения, индексы по строке и столбцу для спарс матрицы
 data, row_ind, col_ind = list(), list(), list()

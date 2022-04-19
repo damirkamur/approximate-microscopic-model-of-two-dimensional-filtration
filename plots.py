@@ -1,12 +1,11 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
-N, M = 200, 100
+N, M = 500, 250
 X, Y = np.meshgrid(np.linspace(0, N + 1, N + 1), np.linspace(0, M + 1, M + 1))
 X1, Y1 = np.meshgrid(np.linspace(0.5, N - 0.5, N), np.linspace(0.5, M - 0.5, M))
 psi = np.zeros((M + 1, N + 1))
 p = np.zeros((M + 1, N + 1))
-ppsi = np.zeros((M, N))
 m = np.zeros((M, N))
 with open(f'results/psi{N}x{M}.dat', 'r') as file:
     for i, line in enumerate(file):
@@ -29,14 +28,14 @@ except Exception as _ex:
 
 plt.figure(1)
 plt.axes().set_aspect('equal')
-plt.contour(X, Y, psi, np.linspace(np.min(psi), np.max(psi), 30))
+plt.contourf(X, Y, psi, np.linspace(np.min(psi), np.max(psi), 30))
 plt.colorbar()
 plt.title('Функция тока')
 plt.show()
 
 plt.figure(2)
 plt.axes().set_aspect('equal')
-plt.contour(X, Y, p, np.linspace(np.min(p), np.max(p), 100))
+plt.contourf(X, Y, p, np.linspace(np.min(p), np.max(p), 100))
 plt.colorbar()
 plt.title('Функция давления')
 plt.show()
@@ -68,3 +67,6 @@ if not p_an is None:
     plt.show()
 
     print(f'Максимальная пгрешность: {np.max(dif_p)}')
+
+print(np.max(psi))
+print(np.min(psi))

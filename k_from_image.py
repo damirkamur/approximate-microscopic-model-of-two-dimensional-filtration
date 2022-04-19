@@ -61,7 +61,7 @@ def write_to_file(file_name: str, mode: int = 1) -> None:
         with open(f'k_from_image/{file_name}_k.dat', 'w') as file:
             for i in range(M):
                 for j in range(N):
-                    file.write('%15.6f' % (k[i][j]) + '\t' * 2)
+                    file.write('%.10e' % (k[i][j]) + '\t' * 2)
                 file.write('\n')
         print(f'Выгрузка k: {time() - start} секунд')
 
@@ -69,7 +69,7 @@ def write_to_file(file_name: str, mode: int = 1) -> None:
         with open(f'k_from_image/{file_name}_dk_dx.dat', 'w') as file:
             for i in range(M):
                 for j in range(N):
-                    file.write('%15.6f' % (dk_dx[i][j]) + '\t' * 2)
+                    file.write('%.10e' % (dk_dx[i][j]) + '\t' * 2)
                 file.write('\n')
         print(f'Выгрузка dk_dx: {time() - start} секунд')
 
@@ -77,7 +77,7 @@ def write_to_file(file_name: str, mode: int = 1) -> None:
         with open(f'k_from_image/{file_name}_dk_dy.dat', 'w') as file:
             for i in range(M):
                 for j in range(N):
-                    file.write('%15.6f' % (dk_dy[i][j]) + '\t' * 2)
+                    file.write('%.10e' % (dk_dy[i][j]) + '\t' * 2)
                 file.write('\n')
         print(f'Выгрузка dk_dy: {time() - start} секунд')
     elif mode == 2:
@@ -86,18 +86,18 @@ def write_to_file(file_name: str, mode: int = 1) -> None:
             file.write(f'{N} {M}\n')
             for i in range(M):
                 for j in range(N):
-                    file.write('%15.6f' % (k[i][j]) + '\t' * 2 + '%15.6f' % (dk_dx[i][j]) + '\t' * 2 + '%15.6f' % (
+                    file.write('%.10e' % (k[i][j]) + '\t' * 2 + '%.10e' % (dk_dx[i][j]) + '\t' * 2 + '%.10e' % (
                         dk_dy[i][j]) + '\n')
 
         print(f'Выгрузка k: {time() - start} секунд')
 
 
-N = 200
-M = 100
+N = 140
+M = 70
 print(f'Система {N}x{M} ячеек')
 print('=' * 40)
 start = time()
-m_from_image('10203040.png', 0.1, 0.4)
+m_from_image('field.png', 0.01, 0.2)
 b = np.array([[1 - math.sqrt(1 - m[i][j]) for j in range(N)] for i in range(M)])
 # Количество k0 (→)
 q_k0 = (M - 1) * N
@@ -138,4 +138,4 @@ for j in range(N):
 k = 0.5 * (k1 + k2)
 print(f'Аппроксимация: {time() - start} секунд')
 
-write_to_file('field1', mode=2)
+write_to_file('field_new_140x70', mode=2)
